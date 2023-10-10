@@ -107,6 +107,7 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
   /// be used after a successful [listen] call.
   @override
   Future<void> cancel() async {
+    print('cancel');
     if (null == _webSpeech) return;
     _webSpeech!.abort();
   }
@@ -141,6 +142,7 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
       onDevice = false,
       int listenMode = 0,
       sampleRate = 0}) async {
+    print('listen');
     if (null == _webSpeech) return false;
     _webSpeech!.onResult.listen((speechEvent) => _onResult(speechEvent));
     _webSpeech!.interimResults = partialResults;
@@ -158,6 +160,7 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
   ///
   @override
   Future<List<dynamic>> locales() async {
+    print('locales');
     var availableLocales = [];
     var lang = _webSpeech?.lang;
     if (null != lang && lang.isNotEmpty) {
@@ -168,6 +171,7 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
   }
 
   void _onError(html.SpeechRecognitionError event) {
+    print('onError');
     if (null != event.error) {
       var error = SpeechRecognitionError(event.error!, false);
       onError?.call(jsonEncode(error.toJson()));
@@ -176,25 +180,30 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
   }
 
   void _onSpeechStart(html.Event event) {
+    print('onSpeechStart');
     onStatus?.call('listening');
   }
 
   void _onSpeechEnd(html.Event event) {
+    print('onSpeechEnd');
     onStatus?.call('notListening');
     _sendDone(_resultSent ? 'done' : _doneNoResult);
   }
 
   void _onNoMatch(html.Event event) {
+    print('onNoMatch');
     _sendDone(_doneNoResult);
   }
 
   void _sendDone(String status) {
+    print('sendDone');
     if (_doneSent) return;
     onStatus?.call(status);
     _doneSent = true;
   }
 
   void _onResult(html.SpeechRecognitionEvent event) {
+    print('onResult');
     var isFinal = false;
     var recogResults = <SpeechRecognitionWords>[];
     var results = event.results;
