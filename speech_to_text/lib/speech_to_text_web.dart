@@ -169,7 +169,8 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
       return false;
     }
     _webSpeech!.onResult.listen((speechEvent) {
-      print('listen: _onResult with speechEvent: $speechEvent');
+      print('listen: _onResult with speechEvent: ${speechEvent.target}\n'
+          'speechEvent: ${speechEvent.results}\n');
       _onResult(speechEvent);
     });
     _webSpeech!.interimResults = partialResults;
@@ -253,6 +254,7 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
     }
     for (var recognitionResult in results) {
       if (null == recognitionResult.length || recognitionResult.length == 0) {
+        print('onResult: null == recognitionResult.length || recognitionResult.length == 0 ${null == recognitionResult.length} || ${recognitionResult.length == 0}');
         continue;
       }
       for (var altIndex = 0; altIndex < recognitionResult.length!; ++altIndex) {
@@ -262,6 +264,7 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
         num? confidence = js_util.getProperty(alt, 'confidence');
         print('onResult: transcript:$transcript and confidence:$confidence');
         if (null != transcript && null != confidence) {
+          print('onResult: null != transcript && null != confidence: ${null != transcript} && ${null != confidence}');
           recogResults.add(
             SpeechRecognitionWords(
               transcript,
