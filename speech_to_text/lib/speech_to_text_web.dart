@@ -19,6 +19,7 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
 
   /// Registers this class as the default instance of [SpeechToTextPlatform].
   static void registerWith(Registrar registrar) {
+    print('registerWith');
     SpeechToTextPlatform.instance = SpeechToTextPlugin();
   }
 
@@ -32,6 +33,7 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
   /// denied them permission in the past.
   @override
   Future<bool> hasPermission() async {
+    print('hasPermission: ${html.SpeechRecognition.supported}');
     return html.SpeechRecognition.supported;
   }
 
@@ -49,15 +51,19 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
   @override
   Future<bool> initialize(
       {debugLogging = false, List<SpeechConfigOption>? options}) async {
+    print('initialize');
     if (!html.SpeechRecognition.supported) {
+      print('!html.SpeechRecognition.supported');
       var error = SpeechRecognitionError('not supported', true);
       onError?.call(jsonEncode(error.toJson()));
       return false;
     }
     var initialized = false;
     try {
+      print('_webSpeech = html.SpeechRecognition()');
       _webSpeech = html.SpeechRecognition();
       if (null != _webSpeech) {
+        print('null != _webSpeech');
         _webSpeech!.onError.listen((error) => _onError(error));
         _webSpeech!.onStart.listen((startEvent) => _onSpeechStart(startEvent));
         _webSpeech!.onSpeechStart
@@ -70,12 +76,17 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
       }
     } finally {
       if (null == _webSpeech) {
+        print('finally: null != _webSpeech');
         if (null != onError) {
+          print('finally: null != onError');
           var error = SpeechRecognitionError('speech_not_supported', true);
+          print('finally: ${error.toJson()}');
           onError!(jsonEncode(error.toJson()));
         }
       }
     }
+    print('initialize: $initialized');
+
     return initialized;
   }
 
@@ -91,8 +102,13 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
   /// only be used after a successful [listen] call.
   @override
   Future<void> stop() async {
-    if (null == _webSpeech) return;
+    print('stop');
+    if (null == _webSpeech) {
+      print('stop: null == _webSpeech');
+      return;
+    }
     _webSpeech!.stop();
+    print('stop: _webSpeech!.stop()');
   }
 
   /// Cancels the current listen for speech if active, does nothing if not.
@@ -108,8 +124,12 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
   @override
   Future<void> cancel() async {
     print('cancel');
-    if (null == _webSpeech) return;
+    if (null == _webSpeech) {
+      print('cancel: null == _webSpeech');
+      return;
+    }
     _webSpeech!.abort();
+    print('cancel: _webSpeech!.abort()');
   }
 
   /// Starts a listening session for speech and converts it to text.
@@ -136,15 +156,22 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
   /// crashes
   ///
   @override
-  Future<bool> listen(
-      {String? localeId,
-      partialResults = true,
-      onDevice = false,
-      int listenMode = 0,
-      sampleRate = 0}) async {
+  Future<bool> listen({
+    String? localeId,
+    partialResults = true,
+    onDevice = false,
+    int listenMode = 0,
+    sampleRate = 0,
+  }) async {
     print('listen');
-    if (null == _webSpeech) return false;
-    _webSpeech!.onResult.listen((speechEvent) => _onResult(speechEvent));
+    if (null == _webSpeech) {
+      print('listen: null == _webSpeech');
+      return false;
+    }
+    _webSpeech!.onResult.listen((speechEvent) {
+      print('listen: _onResult with speechEvent: $speechEvent');
+      _onResult(speechEvent);
+    });
     _webSpeech!.interimResults = partialResults;
     _webSpeech!.continuous = partialResults;
     if (null != localeId) {
@@ -153,6 +180,7 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
     _doneSent = false;
     _resultSent = false;
     _webSpeech!.start();
+    print('listen: _webSpeech!.start()');
     return true;
   }
 
@@ -167,38 +195,50 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
       lang = lang.replaceAll(':', '_');
       availableLocales.add('$lang:$lang');
     }
+    print('locales: availableLocales [$availableLocales]');
     return availableLocales;
   }
 
   void _onError(html.SpeechRecognitionError event) {
     print('onError');
     if (null != event.error) {
+      print('onError: null != event.error');
       var error = SpeechRecognitionError(event.error!, false);
+      print('onError: error.toJson()');
       onError?.call(jsonEncode(error.toJson()));
       _sendDone(_doneNoResult);
+      print('onError: _sendDone');
     }
   }
 
   void _onSpeechStart(html.Event event) {
     print('onSpeechStart');
     onStatus?.call('listening');
+    print('onSpeechStart: listening');
   }
 
   void _onSpeechEnd(html.Event event) {
     print('onSpeechEnd');
     onStatus?.call('notListening');
+    print('onSpeechStart: notListening');
     _sendDone(_resultSent ? 'done' : _doneNoResult);
+    print('onSpeechStart: _sendDone( ${_resultSent ? 'done' : _doneNoResult})');
   }
 
   void _onNoMatch(html.Event event) {
     print('onNoMatch');
     _sendDone(_doneNoResult);
+    print('onNoMatch: _sendDone $_doneNoResult');
   }
 
   void _sendDone(String status) {
     print('sendDone');
-    if (_doneSent) return;
+    if (_doneSent) {
+      print('sendDone: _doneSent');
+      return;
+    }
     onStatus?.call(status);
+    print('sendDone: onStatus?.call(status)');
     _doneSent = true;
   }
 
@@ -207,7 +247,10 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
     var isFinal = false;
     var recogResults = <SpeechRecognitionWords>[];
     var results = event.results;
-    if (null == results) return;
+    if (null == results) {
+      print('onResult: null == results');
+      return;
+    }
     for (var recognitionResult in results) {
       if (null == recognitionResult.length || recognitionResult.length == 0) {
         continue;
@@ -217,13 +260,19 @@ class SpeechToTextPlugin extends SpeechToTextPlatform {
         if (null == alt) continue;
         String? transcript = js_util.getProperty(alt, 'transcript');
         num? confidence = js_util.getProperty(alt, 'confidence');
+        print('onResult: transcript:$transcript and confidence:$confidence');
         if (null != transcript && null != confidence) {
-          recogResults
-              .add(SpeechRecognitionWords(transcript, confidence.toDouble()));
+          recogResults.add(
+            SpeechRecognitionWords(
+              transcript,
+              confidence.toDouble(),
+            ),
+          );
         }
       }
     }
     var result = SpeechRecognitionResult(recogResults, isFinal);
+    print('onResult: result: ${result.toJson()}');
     onTextRecognition?.call(jsonEncode(result.toJson()));
     _resultSent = true;
   }
